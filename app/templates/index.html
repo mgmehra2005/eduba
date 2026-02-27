@@ -1,8 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}Home – Eduba{% endblock %}
+{% block title %}Home - Eduba{% endblock %}
+
+{% block extra_styles %}
+<style>
+    main {
+        text-align: center;
+        align-items: center;
+        padding-top: 2rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<h2>Welcome to Eduba</h2>
-<p>Your explainable, multilingual AI learning companion.</p>
+    <div id="userQuery">
+        <input type="text" name="query" id="queryInput" placeholder="Problem Statement">
+        <button id="processQuery" onclick=window.location.href="/problem">></button>
+    </div>
 {% endblock %}
