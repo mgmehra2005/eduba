@@ -21,8 +21,17 @@ class DBConnection:
         cursor.execute(query)
         data = cursor.fetchall()
         cursor.close()
-        self.connect.close()
         return data
+    
+    def push_db_cursor(self, query):
+        cursor = self.connect.cursor()
+        cursor.execute(query)
+        self.connect.commit()
+        cursor.close()
+
+    def close(self):
+        self.connect.close()
+
     
 # if __name__ == "__main__":
 #     from app import app
