@@ -16,21 +16,30 @@ class DBConnection:
             raise ImportError("pymysql library is not installed or not found")
         
 
-    def get_db_cursor(self, query):
+    def get_db_cursor(self, query, tuple_params=None):
         cursor = self.connect.cursor()
-        cursor.execute(query)
+        if tuple_params:
+            cursor.execute(query, tuple_params)
+        else:
+            cursor.execute(query)
         data = cursor.fetchall()
         cursor.close()
         return data
     
-    def push_db_cursor(self, query):
+    def push_db_cursor(self, query, tuple_params=None):
         cursor = self.connect.cursor()
-        cursor.execute(query)
+        if tuple_params:
+            cursor.execute(query, tuple_params)
+        else:
+            cursor.execute(query)
         self.connect.commit()
         cursor.close()
 
     def close(self):
         self.connect.close()
+    
+    def open(self):
+        return self.connect
 
     
 # if __name__ == "__main__":

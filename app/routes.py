@@ -1,21 +1,25 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, json
 from app import app
 from app.db_connect import DBConnection
-from app.eduba_engine import update_mastery
+from app.eduba_engine import update_mastery, EdubaAIEngine
 
 main = Blueprint("main", __name__)
 conn = DBConnection(app.config)
+aiEngine = EdubaAIEngine()
 
 @main.route("/")
 def index():
     return render_template("index.html")
 
-@main.route("/concepts", methods=['GET']) 
-def concepts():
-    return jsonify(conn.get_db_cursor("select * from concepts;"))
+# @main.route("/concepts", methods=['GET']) 
+# def concepts():
+#     return jsonify(conn.get_db_cursor("select * from concepts;"))
 
 @main.route('/exercises/<int:concept_id>', methods=['GET'])
 def exercise(concept_id):
+    if not concept_id:
+        return jsonify({"error": "Invalid concept id"})
+    
     query = f'select exercise_id, problem_text, difficulty_level from exercise where concept_id = {concept_id};'
     try:
         result = conn.get_db_cursor(query)
@@ -65,3 +69,44 @@ def submit_answers():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@main.route('/ai-query', methods=['POST'])
+def ai_query():
+    data = request.json
+    query = data.get("query", "")
+    
+    if not query:
+        return jsonify({"error": "Query is required"}), 400
+    
+    # Checking Cache
+    cache_query = f"SELECT ai_response from ai_cache where user_query = '{query}';"
+    cache_response = conn.get_db_cursor(cache_query)
+    if cache_response:
+        return jsonify({
+            "source": "cache",
+            "data" : cache_response[0]["ai_response"]
+        })
+    
+    # If not found in cache Calling AI ENgine
+    ai_json = aiEngine.gen_ai_response(query)
+    ai_response = jsonify({
+        "source": "ai",
+        "data": ai_json
+    })
+    # Caching AI response
+    try:
+        safe_json = json.dumps(ai_json, ensure_ascii=False)
+        conn.push_db_cursor("""
+        INSERT INTO ai_cache (user_query, ai_response)
+        VALUES (%s, %s)
+        ON DUPLICATE KEY UPDATE ai_response = VALUES(ai_response)
+        """, (query, safe_json))
+    except Exception as e:
+        print("Error caching AI response:", str(e))
+
+    return ai_response
+
+@main.route("/query-router", methods=["POST"])
+def query_router():
+    user_query = request.json
+    
+    return {}
